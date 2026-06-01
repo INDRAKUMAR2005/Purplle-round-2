@@ -1,0 +1,21 @@
+# Large binary files — not needed for serverless deployment
+CCTV_Footage/
+CCTV_Footage.zip
+extracted_frames/
+store_analytics.db
+Brigade_Road_Store_layout.xlsx
+Assessment_Evaluation_Framework.pdf
+
+# Python artifacts
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+venv/
+.venv/
+ENV/
+
+# Dev/IDE
+.vscode/
+.idea/
+*.suo
