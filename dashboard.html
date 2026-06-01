@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Store Intelligence Console — ST1008</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Inter:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #fcfcfd;
+            --panel-bg: #ffffff;
+            --border-color: rgba(220, 38, 38, 0.1);
+            --accent-primary: #dc2626; /* Bright Cherry Red */
+            --accent-secondary: #f87171; /* Coral Red */
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --text-main: #1f2937;
+            --text-muted: #6b7280;
+            --card-shadow: 0 4px 20px -2px rgba(220, 38, 38, 0.05);
+            --hover-shadow: 0 10px 30px -4px rgba(220, 38, 38, 0.12);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            min-height: 100vh;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(220, 38, 38, 0.04) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(248, 113, 113, 0.03) 0px, transparent 50%);
+            background-attachment: fixed;
+            padding: 2.5rem;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 3rem;
+            border-bottom: 2px solid rgba(220, 38, 38, 0.08);
+            padding-bottom: 1.5rem;
+        }
+
+        h1, h2, h3 {
+            font-family: 'Outfit', sans-serif;
+            font-weight: 600;
+        }
+
+        .logo-area h1 {
+            font-size: 2.25rem;
+            font-weight: 800;
+            background: linear-gradient(to right, var(--accent-primary), #991b1b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.75px;
+        }
+
+        .logo-area p {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin-top: 0.25rem;
+            font-weight: 500;
+        }
+
+        .badge-live {
+            background: rgba(220, 38, 38, 0.06);
+            color: var(--accent-primary);
+            border: 1px solid rgba(220, 38, 38, 0.15);
+            padding: 0.35rem 1rem;
+            border-radius: 9999px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .badge-live::before {
+            content: '';
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background-color: var(--accent-primary);
+            border-radius: 50%;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.95); opacity: 0.5; }
+            50% { transform: scale(1.3); opacity: 1; }
+            100% { transform: scale(0.95); opacity: 0.5; }
+        }
+
+        /* KPI Dashboard Grid */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.75rem;
+            margin-bottom: 3rem;
+        }
+
+        .kpi-card {
+            background: var(--panel-bg);
+            border: 1px solid rgba(220, 38, 38, 0.08);
+            border-radius: 16px;
+            padding: 1.75rem;
+            box-shadow: var(--card-shadow);
+            transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .kpi-card::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 5px;
+            background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .kpi-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--hover-shadow);
+            border-color: rgba(220, 38, 38, 0.2);
+        }
+
+        .kpi-card:hover::after {
+            opacity: 1;
+        }
+
+        .kpi-card h3 {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.75px;
+        }
+
+        .kpi-card .value {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-top: 0.5rem;
+            color: #111827;
+            font-family: 'Outfit', sans-serif;
+            background: linear-gradient(135deg, #111827, var(--accent-primary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .kpi-card .sub-text {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 0.5rem;
+            font-weight: 500;
+        }
+
+        /* Middle Grid Layout */
+        .dashboard-row {
+            display: grid;
+            grid-template-columns: 1.25fr 1fr;
+            gap: 2.25rem;
+            margin-bottom: 3rem;
+        }
+
+        @media (max-width: 1024px) {
+            .dashboard-row {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .panel {
+            background: var(--panel-bg);
+            border: 1px solid rgba(220, 38, 38, 0.08);
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: var(--card-shadow);
+            transition: border-color 0.3s;
+        }
+
+        .panel:hover {
+            border-color: rgba(220, 38, 38, 0.15);
+        }
+
+        .panel-header {
+            margin-bottom: 1.75rem;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+            padding-bottom: 1.25rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .panel h2 {
+            font-size: 1.4rem;
+            color: #111827;
+            font-weight: 700;
+        }
+
+        /* Conversion Funnel visualization */
+        .funnel-container {
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+        }
+
+        .funnel-stage {
+            display: flex;
+            align-items: center;
+            background: #fafafa;
+            border: 1px solid rgba(0, 0, 0, 0.04);
+            border-radius: 12px;
+            padding: 1.15rem 1.5rem;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.2s ease-in-out;
+        }
+
+        .funnel-stage:hover {
+            transform: scale(1.01);
+            background: #fdfdfd;
+            border-color: rgba(220, 38, 38, 0.15);
+        }
+
+        .funnel-stage-fill {
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, rgba(220, 38, 38, 0.03), rgba(220, 38, 38, 0.06));
+            z-index: 1;
+            border-right: 2px solid rgba(220, 38, 38, 0.15);
+        }
+
+        .stage-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            z-index: 2;
+        }
+
+        .stage-name-wrap {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .stage-num {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: rgba(220, 38, 38, 0.08);
+            color: var(--accent-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 0.9rem;
+        }
+
+        .stage-title {
+            font-weight: 600;
+            color: #1f2937;
+            font-size: 1rem;
+        }
+
+        .stage-stats {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+        }
+
+        .stage-visitors {
+            font-weight: 700;
+            font-size: 1.15rem;
+            color: #111827;
+        }
+
+        .stage-conv {
+            background: rgba(220, 38, 38, 0.08);
+            color: var(--accent-primary);
+            padding: 0.35rem 0.75rem;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 700;
+        }
+
+        /* Layout Shelf Efficiency */
+        .layout-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.25rem;
+        }
+
+        .shelf-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.1rem 1.5rem;
+            border-radius: 12px;
+            background: #fafafa;
+            border: 1px solid rgba(0, 0, 0, 0.04);
+            transition: all 0.2s;
+        }
+
+        .shelf-item:hover {
+            background: #ffffff;
+            border-color: rgba(220, 38, 38, 0.15);
+        }
+
+        .shelf-brand {
+            font-weight: 700;
+            color: #111827;
+            font-size: 1rem;
+        }
+
+        .shelf-zone {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 0.25rem;
+            font-weight: 500;
+        }
+
+        .shelf-metrics {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        .shelf-sales {
+            font-weight: 700;
+            color: #111827;
+        }
+
+        .shelf-dwell {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .shelf-aci {
+            padding: 0.35rem 0.75rem;
+            border-radius: 8px;
+            font-weight: 800;
+            font-size: 0.85rem;
+        }
+
+        .aci-high { background: rgba(16, 185, 129, 0.1); color: #047857; border: 1px solid rgba(16, 185, 129, 0.2); }
+        .aci-med { background: rgba(245, 158, 11, 0.1); color: #b45309; border: 1px solid rgba(245, 158, 11, 0.2); }
+        .aci-low { background: rgba(220, 38, 38, 0.08); color: var(--accent-primary); border: 1px solid rgba(220, 38, 38, 0.15); }
+
+        /* Anomaly Feeds & Leaderboard Column */
+        .bottom-row {
+            display: grid;
+            grid-template-columns: 1.25fr 1fr;
+            gap: 2.25rem;
+        }
+
+        @media (max-width: 1024px) {
+            .bottom-row {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .feed-container {
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+            max-height: 420px;
+            overflow-y: auto;
+            padding-right: 0.5rem;
+        }
+
+        .feed-container::-webkit-scrollbar {
+            width: 6px;
+        }
+        .feed-container::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.02);
+        }
+        .feed-container::-webkit-scrollbar-thumb {
+            background: rgba(220, 38, 38, 0.15);
+            border-radius: 3px;
+        }
+
+        .anomaly-card {
+            display: flex;
+            gap: 1.15rem;
+            background: #fafafa;
+            border: 1px solid rgba(0, 0, 0, 0.04);
+            border-radius: 12px;
+            padding: 1.25rem;
+            align-items: flex-start;
+            transition: all 0.2s;
+        }
+
+        .anomaly-card:hover {
+            background: #ffffff;
+            border-color: rgba(220, 38, 38, 0.15);
+            box-shadow: 0 4px 15px -2px rgba(220, 38, 38, 0.04);
+        }
+
+        .severity-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-top: 0.25rem;
+            flex-shrink: 0;
+        }
+
+        .sev-high { background-color: var(--danger); box-shadow: 0 0 10px rgba(239, 68, 68, 0.4); }
+        .sev-medium { background-color: var(--warning); box-shadow: 0 0 10px rgba(245, 158, 11, 0.4); }
+        .sev-low { background-color: var(--accent-primary); box-shadow: 0 0 10px rgba(220, 38, 38, 0.4); }
+
+        .anomaly-content h4 {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: #111827;
+        }
+
+        .anomaly-content p {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-top: 0.35rem;
+            line-height: 1.5;
+            font-weight: 500;
+        }
+
+        .anomaly-meta {
+            display: flex;
+            gap: 1.25rem;
+            margin-top: 0.75rem;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+
+        /* Salesperson Leaderboard */
+        .leaderboard-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .leaderboard-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #fafafa;
+            border: 1px solid rgba(0, 0, 0, 0.04);
+            border-radius: 12px;
+            padding: 1.1rem 1.5rem;
+            transition: all 0.2s;
+        }
+
+        .leaderboard-item:hover {
+            background: #ffffff;
+            border-color: rgba(220, 38, 38, 0.15);
+        }
+
+        .rep-profile {
+            display: flex;
+            align-items: center;
+            gap: 1.15rem;
+        }
+
+        .rep-avatar {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent-primary), #991b1b);
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 0.95rem;
+        }
+
+        .rep-name {
+            font-weight: 700;
+            font-size: 1.05rem;
+            color: #111827;
+        }
+
+        .rep-id {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 0.2rem;
+            font-weight: 500;
+        }
+
+        .rep-stats {
+            text-align: right;
+        }
+
+        .rep-sales {
+            font-weight: 800;
+            color: var(--accent-primary);
+            font-size: 1.15rem;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        .rep-trans {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 0.2rem;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo-area">
+            <h1>Store Intelligence Console</h1>
+            <p>Brigade Road, Bangalore (ST1008) • Date: 2026-04-10</p>
+        </div>
+        <div class="badge-live">Live Analytics Server Active</div>
+    </header>
+
+    <main>
+        <!-- KPI Row -->
+        <div class="kpi-grid" id="kpi-grid">
+            <div class="kpi-card">
+                <h3>Store Conversion Rate</h3>
+                <div class="value" id="val-conversion">--</div>
+                <div class="sub-text">Completed sales vs non-staff visitors</div>
+            </div>
+            <div class="kpi-card">
+                <h3>Total Visitors</h3>
+                <div class="value" id="val-visitors">--</div>
+                <div class="sub-text">Distinct tracked customer entries</div>
+            </div>
+            <div class="kpi-card">
+                <h3>Store Revenue (NMV)</h3>
+                <div class="value" id="val-nmv">--</div>
+                <div class="sub-text">Net Merchandise Value (INR)</div>
+            </div>
+            <div class="kpi-card">
+                <h3>Avg. Dwell Time</h3>
+                <div class="value" id="val-dwell">--</div>
+                <div class="sub-text">Average shopper dwell in minutes</div>
+            </div>
+        </div>
+
+        <!-- Middle Row: Funnel & Shelf Layout -->
+        <div class="dashboard-row">
+            <!-- Funnel Panel -->
+            <div class="panel">
+                <div class="panel-header">
+                    <h2>Session Shopping Funnel</h2>
+                    <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600;">Unique Session Based</span>
+                </div>
+                <div class="funnel-container" id="funnel-container">
+                    <!-- Funnel items will load here -->
+                </div>
+            </div>
+
+            <!-- Shelf Layout Panel -->
+            <div class="panel">
+                <div class="panel-header">
+                    <h2>Shelf Attention Conversion (ACI)</h2>
+                    <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600;">Brand NMV / Shopper Dwell Time</span>
+                </div>
+                <div class="layout-grid" id="layout-grid">
+                    <!-- Layout items will load here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Row: Anomalies & Leaderboard -->
+        <div class="bottom-row">
+            <!-- Anomalies Panel -->
+            <div class="panel">
+                <div class="panel-header">
+                    <h2>Operational Shop Floor Anomalies</h2>
+                    <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600;" id="anomalies-count">-- detected</span>
+                </div>
+                <div class="feed-container" id="anomalies-feed">
+                    <!-- Anomaly cards will load here -->
+                </div>
+            </div>
+
+            <!-- Leaderboard Panel -->
+            <div class="panel">
+                <div class="panel-header">
+                    <h2>Salesperson Performance Leaderboard</h2>
+                    <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600;">Sorted by NMV contribution</span>
+                </div>
+                <div class="leaderboard-list" id="rep-leaderboard">
+                    <!-- Rep items will load here -->
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        async function fetchDashboardData() {
+            try {
+                // Fetch stats from local API server
+                const resMetrics = await fetch('/metrics');
+                const metrics = await resMetrics.json();
+
+                const resFunnel = await fetch('/funnel');
+                const funnel = await resFunnel.json();
+
+                const resAnomalies = await fetch('/anomalies');
+                const anomalies = await resAnomalies.json();
+
+                const resLayout = await fetch('/layout');
+                const layout = await resLayout.json();
+
+                // 1. POPULATE KPIS
+                document.getElementById('val-conversion').innerText = `${metrics.store_summary.overall_conversion_rate}%`;
+                document.getElementById('val-visitors').innerText = metrics.store_summary.non_staff_visitors;
+                document.getElementById('val-nmv').innerText = `₹${metrics.store_summary.total_nmv.toLocaleString()}`;
+                document.getElementById('val-dwell').innerText = `${metrics.store_summary.average_dwell_time_minutes}m`;
+
+                // 2. POPULATE FUNNEL
+                const funnelContainer = document.getElementById('funnel-container');
+                funnelContainer.innerHTML = '';
+                funnel.stages.forEach(stage => {
+                    const pct = stage.conversion_percentage;
+                    const fillWidth = pct;
+                    const item = document.createElement('div');
+                    item.className = 'funnel-stage';
+                    item.innerHTML = `
+                        <div class="funnel-stage-fill" style="width: ${fillWidth}%;"></div>
+                        <div class="stage-info">
+                            <div class="stage-name-wrap">
+                                <div class="stage-num">${stage.stage_index}</div>
+                                <div class="stage-title">${stage.stage_name}</div>
+                            </div>
+                            <div class="stage-stats">
+                                <div class="stage-visitors">${stage.unique_visitors} visitors</div>
+                                <div class="stage-conv">${pct}%</div>
+                            </div>
+                        </div>
+                    `;
+                    funnelContainer.appendChild(item);
+                });
+
+                // 3. POPULATE SHELF LAYOUT
+                const layoutGrid = document.getElementById('layout-grid');
+                layoutGrid.innerHTML = '';
+                
+                // Sort by conversion index and display top brands
+                const sortedShelves = layout.shelf_efficiency_metrics
+                    .sort((a, b) => b.attention_conversion_index - a.attention_conversion_index)
+                    .slice(0, 5);
+
+                sortedShelves.forEach(shelf => {
+                    const aci = shelf.attention_conversion_index;
+                    let badgeClass = 'aci-high';
+                    if (aci < 1.0) badgeClass = 'aci-low';
+                    else if (aci < 5.0) badgeClass = 'aci-med';
+
+                    const item = document.createElement('div');
+                    item.className = 'shelf-item';
+                    item.innerHTML = `
+                        <div>
+                            <div class="shelf-brand">${shelf.brand}</div>
+                            <div class="shelf-zone">Zone: ${shelf.mapped_shelf_zone}</div>
+                        </div>
+                        <div class="shelf-metrics">
+                            <div class="shelf-dwell">${Math.round(shelf.shopper_dwell_time_seconds)}s dwell</div>
+                            <div class="shelf-sales">₹${shelf.total_sales_nmv.toLocaleString()}</div>
+                            <div class="shelf-aci ${badgeClass}">ACI: ${aci}</div>
+                        </div>
+                    `;
+                    layoutGrid.appendChild(item);
+                });
+
+                // 4. POPULATE ANOMALIES
+                document.getElementById('anomalies-count').innerText = `${anomalies.anomalies_count} anomalies`;
+                const feed = document.getElementById('anomalies-feed');
+                feed.innerHTML = '';
+                
+                anomalies.detected_anomalies.slice(0, 8).forEach(anom => {
+                    let sevClass = 'sev-low';
+                    if (anom.severity === 'HIGH') sevClass = 'sev-high';
+                    else if (anom.severity === 'MEDIUM') sevClass = 'sev-medium';
+
+                    const card = document.createElement('div');
+                    card.className = 'anomaly-card';
+                    card.innerHTML = `
+                        <div class="severity-indicator ${sevClass}"></div>
+                        <div class="anomaly-content">
+                            <h4>${anom.type}</h4>
+                            <p>${anom.description}</p>
+                            <div class="anomaly-meta">
+                                <span>Severity: ${anom.severity}</span>
+                                <span>Time: ${anom.timestamp.split('T')[1]}</span>
+                                <span>Visitor ID: ${anom.visitor_id}</span>
+                            </div>
+                        </div>
+                    `;
+                    feed.appendChild(card);
+                });
+
+                // 5. POPULATE SALESPERSONS
+                const leaderboard = document.getElementById('rep-leaderboard');
+                leaderboard.innerHTML = '';
+                metrics.salesperson_performance.slice(0, 4).forEach((rep, index) => {
+                    if(rep.salesperson_name !== "nan") {
+                        const initials = rep.salesperson_name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+                        const item = document.createElement('div');
+                        item.className = 'leaderboard-item';
+                        item.innerHTML = `
+                            <div class="rep-profile">
+                                <div class="rep-avatar">${initials || 'SP'}</div>
+                                <div>
+                                    <div class="rep-name">${rep.salesperson_name}</div>
+                                    <div class="rep-id">Rep ID: ${rep.salesperson_id} • Basket: ₹${rep.avg_basket_value}</div>
+                                </div>
+                            </div>
+                            <div class="rep-stats">
+                                <div class="rep-sales">₹${rep.total_nmv.toLocaleString()}</div>
+                                <div class="rep-trans">${rep.transaction_count} sales • ${rep.items_sold} items</div>
+                            </div>
+                        `;
+                        leaderboard.appendChild(item);
+                    }
+                });
+
+            } catch (err) {
+                console.error("Error fetching console statistics: ", err);
+            }
+        }
+
+        // Initialize and refresh every 5 seconds
+        fetchDashboardData();
+        setInterval(fetchDashboardData, 5000);
+    </script>
+</body>
+</html>

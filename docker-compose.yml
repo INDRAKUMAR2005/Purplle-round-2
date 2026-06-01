@@ -1,0 +1,13 @@
+version: "3.8"
+
+services:
+  analytics-api:
+    build: .
+    container_name: store_intelligence_api
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    environment:
+      - ENV=production
+    restart: unless-stopped
