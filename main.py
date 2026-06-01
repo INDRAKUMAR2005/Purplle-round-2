@@ -6,7 +6,16 @@ import pandas as pd
 import json
 import os
 import datetime
-from db import get_events
+import logging
+from db import get_events, DB_PATH
+
+# ── Structured Logging Setup ──────────────────────────────────────────────────
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
+    datefmt="%Y-%m-%dT%H:%M:%S"
+)
+logger = logging.getLogger("store_intelligence")
 
 app = FastAPI(
     title="Store Intelligence Retail Analytics API",
@@ -32,18 +41,65 @@ def get_csv_data():
 
 @app.get("/")
 def read_root():
+    logger.info("GET / — health ping")
     return {
         "status": "online",
         "timestamp": datetime.datetime.now().isoformat(),
         "store_id": "ST1008",
         "store_name": "Brigade_Bangalore",
         "api_endpoints": [
+            "/health",
             "/metrics",
             "/funnel",
             "/anomalies",
-            "/layout"
+            "/layout",
+            "/dashboard"
         ]
     }
+
+
+@app.get("/health")
+def health_check():
+    """Production health check — returns system status, event counts, and CSV availability."""
+    logger.info("GET /health")
+    status = {"api": "ok", "database": "unknown", "csv": "unknown"}
+    db_event_count = 0
+    csv_row_count = 0
+
+    # Check DB
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*) FROM events")
+        db_event_count = cursor.fetchone()[0]
+        conn.close()
+        status["database"] = "ok"
+    except Exception as e:
+        status["database"] = f"error: {str(e)}"
+        logger.error(f"Health check DB error: {e}")
+
+    # Check CSV
+    try:
+        if os.path.exists(CSV_PATH):
+            df = pd.read_csv(CSV_PATH)
+            csv_row_count = len(df)
+            status["csv"] = "ok"
+        else:
+            status["csv"] = "missing"
+    except Exception as e:
+        status["csv"] = f"error: {str(e)}"
+        logger.error(f"Health check CSV error: {e}")
+
+    overall = "healthy" if status["database"] == "ok" and status["csv"] == "ok" else "degraded"
+    return {
+        "overall": overall,
+        "timestamp": datetime.datetime.now().isoformat(),
+        "store_id": "ST1008",
+        "components": status,
+        "db_event_count": db_event_count,
+        "csv_row_count": csv_row_count
+    }
+
 
 @app.get("/metrics")
 def get_metrics():

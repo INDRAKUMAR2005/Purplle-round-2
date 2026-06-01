@@ -2,7 +2,13 @@ import sqlite3
 import json
 import os
 
-DB_PATH = "store_analytics.db"
+# Detect if running in a Vercel serverless environment
+IS_VERCEL = "VERCEL" in os.environ
+
+if IS_VERCEL:
+    DB_PATH = "/tmp/store_analytics.db"
+else:
+    DB_PATH = "store_analytics.db"
 
 def init_db():
     conn = sqlite3.connect(DB_PATH)
@@ -32,6 +38,12 @@ def log_event(timestamp, event_type, visitor_id, details=None):
     conn.close()
 
 def get_events(event_type=None):
+    # For Vercel Serverless: automatically pre-populate the DB in /tmp on first retrieval
+    if IS_VERCEL and not os.path.exists(DB_PATH):
+        print("[DB] Vercel environment detected. Automatically pre-populating database in /tmp...")
+        from pipeline import run_pipeline
+        run_pipeline()
+        
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     if event_type:
