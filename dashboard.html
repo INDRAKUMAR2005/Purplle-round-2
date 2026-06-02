@@ -7,24 +7,37 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Inter:wght@300;400;500;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-color: #fcfcfd;
+            --bg-color: #f8fafc;
             --panel-bg: #ffffff;
-            --border-color: rgba(220, 38, 38, 0.1);
+            --border-color: rgba(220, 38, 38, 0.06);
             --accent-primary: #dc2626; /* Bright Cherry Red */
             --accent-secondary: #f87171; /* Coral Red */
             --success: #10b981;
             --warning: #f59e0b;
             --danger: #ef4444;
-            --text-main: #1f2937;
-            --text-muted: #6b7280;
-            --card-shadow: 0 4px 20px -2px rgba(220, 38, 38, 0.05);
-            --hover-shadow: 0 10px 30px -4px rgba(220, 38, 38, 0.12);
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --card-shadow: 0 4px 20px -2px rgba(220, 38, 38, 0.03);
+            --hover-shadow: 0 10px 30px -4px rgba(220, 38, 38, 0.08);
+            --glass-bg: rgba(255, 255, 255, 0.8);
+        }
+
+        [data-theme="dark"] {
+            --bg-color: #0b0f19;
+            --panel-bg: #111827;
+            --border-color: rgba(220, 38, 38, 0.15);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --card-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.5);
+            --hover-shadow: 0 10px 30px -4px rgba(220, 38, 38, 0.2);
+            --glass-bg: rgba(17, 24, 39, 0.8);
         }
 
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
+            transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
         }
 
         body {
@@ -33,8 +46,8 @@
             color: var(--text-main);
             min-height: 100vh;
             background-image: 
-                radial-gradient(at 0% 0%, rgba(220, 38, 38, 0.04) 0px, transparent 50%),
-                radial-gradient(at 100% 100%, rgba(248, 113, 113, 0.03) 0px, transparent 50%);
+                radial-gradient(at 0% 0%, rgba(220, 38, 38, 0.05) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(248, 113, 113, 0.04) 0px, transparent 50%);
             background-attachment: fixed;
             padding: 2.5rem;
         }
@@ -80,6 +93,26 @@
             display: flex;
             align-items: center;
             gap: 0.5rem;
+        }
+
+        .theme-toggle-btn {
+            background: var(--panel-bg);
+            border: 1px solid rgba(220, 38, 38, 0.15);
+            color: var(--text-main);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            box-shadow: var(--card-shadow);
+            transition: all 0.2s ease;
+        }
+        .theme-toggle-btn:hover {
+            transform: translateY(-2px);
+            border-color: var(--accent-primary);
         }
 
         .badge-live::before {
@@ -526,7 +559,10 @@
             <h1>Store Intelligence Console</h1>
             <p>Brigade Road, Bangalore (ST1008) • Date: 2026-04-10</p>
         </div>
-        <div class="badge-live">Live Analytics Server Active</div>
+        <div style="display: flex; gap: 1rem; align-items: center;">
+            <button class="theme-toggle-btn" id="theme-toggle">🌓 Toggle Dark Mode</button>
+            <div class="badge-live">Live Analytics Server Active</div>
+        </div>
     </header>
 
     <main>
@@ -742,6 +778,25 @@
         // Initialize and refresh every 5 seconds
         fetchDashboardData();
         setInterval(fetchDashboardData, 5000);
+
+        // Theme Toggle Script
+        const themeToggleBtn = document.getElementById('theme-toggle');
+        const currentTheme = localStorage.getItem('theme') || 'light';
+        
+        if (currentTheme === 'dark') {
+            document.documentElement.setAttribute('data-theme', 'dark');
+        }
+
+        themeToggleBtn.addEventListener('click', () => {
+            let theme = 'light';
+            if (document.documentElement.getAttribute('data-theme') !== 'dark') {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                theme = 'dark';
+            } else {
+                document.documentElement.removeAttribute('data-theme');
+            }
+            localStorage.setItem('theme', theme);
+        });
     </script>
 </body>
 </html>
