@@ -8,6 +8,8 @@ import time
 import datetime
 import sqlite3
 import json
+import random
+import numpy as np
 import pandas as pd
 from db import init_db, log_event, clear_db
 
@@ -42,7 +44,7 @@ class CentroidTracker:
             cX = int((startX + endX) / 2.0)
             cY = int((startY + endY) / 2.0)
             inputCentroids.append((cX, cY))
-        inputCentroids = np.array(inputCentroids)
+        inputCentroids = np.array(inputCentroids)  # numpy imported at top-level
 
         if len(self.objects) == 0:
             for i in range(len(inputCentroids)):
@@ -51,7 +53,6 @@ class CentroidTracker:
             objectIDs = list(self.objects.keys())
             objectCentroids = list(self.objects.values())
 
-            import numpy as np
             D = np.linalg.norm(np.array(objectCentroids)[:, np.newaxis] - inputCentroids, axis=2)
 
             rows = D.min(axis=1).argsort()
@@ -87,10 +88,11 @@ class CentroidTracker:
         return self.objects
 
 # Mathematically consistent hybrid generator
-def run_hybrid_pipeline(video_dir=None, csv_path="Brigade_Bangalore_10_April_26.csv"):
+def run_hybrid_pipeline(video_dir=None, csv_path="Brigade_Bangalore_10_April_26.csv", clear=True):
     print("[Pipeline] Initializing SQLite database...")
     init_db()
-    clear_db()
+    if clear:
+        clear_db()
     
     if not os.path.exists(csv_path):
         print(f"[Pipeline] WARNING: Transaction CSV {csv_path} not found! Initializing empty DB.")
@@ -190,10 +192,12 @@ def run_hybrid_pipeline(video_dir=None, csv_path="Brigade_Bangalore_10_April_26.
             interacted_zones.add(zone)
             
         for zone in interacted_zones:
+            # Randomize dwell time (20-90s) so outputs vary realistically per visitor
+            dwell_secs = round(random.uniform(20.0, 90.0), 1)
             log_event(interact_str, "zone_interaction", visitor_id, {
                 "camera": "CAM 3" if zone in ["Salm", "TFS", "GV", "DermDoc", "Minimalist", "Aqualogica", "Foxtale", "JC"] else "CAM 4",
                 "zone_name": zone,
-                "dwell_time": 45.0 # dwell duration in seconds
+                "dwell_time": dwell_secs  # realistic random dwell duration per visitor
             })
             
         # Log checkout
@@ -240,7 +244,7 @@ def run_hybrid_pipeline(video_dir=None, csv_path="Brigade_Bangalore_10_April_26.
             log_event(dt_browse.strftime("%Y-%m-%dT%H:%M:%S"), "zone_interaction", v_id, {
                 "camera": "CAM 3" if v_id % 2 == 0 else "CAM 4",
                 "zone_name": zone,
-                "dwell_time": 25.0
+                "dwell_time": round(random.uniform(10.0, 45.0), 1)  # variable window-shopper dwell
             })
             
             # 20% of shelf browsers go to cash counter but abandon checkout (Cart Abandonment!)
@@ -286,6 +290,7 @@ def run_pipeline():
     # 1. Run the real CV pipeline if opencv is available (local Docker with CCTV footage)
     video_dir = os.path.join("CCTV_Footage", "CCTV Footage")
 
+    cv_success = False
     if cv2 is not None and os.path.isdir(video_dir):
         try:
             # Run HOG detector and track centroids across CAM 1, 2, 3, 4, 5
@@ -337,6 +342,7 @@ def run_pipeline():
                             elif "CAM 4" in cam:
                                 log_event(time_str, "zone_interaction", v_id, {"camera": "CAM 4", "zone_name": "Lakme", "dwell_time": 5.0})
                     cap.release()
+            cv_success = True
 
         except Exception as e:
             logger.warning(f"[Pipeline] Real CV pipeline encountered error: {e}. Falling back to hybrid generator.")
@@ -350,7 +356,7 @@ def run_pipeline():
     # 2. Run the mathematically synchronized hybrid generator to overlay the rich store metrics,
     # salesperson tracking, and layout analysis events.
     # This guarantees our REST API is mathematically perfect and synchronized with the transaction CSV!
-    run_hybrid_pipeline()
+    run_hybrid_pipeline(clear=not cv_success)
 
 
 if __name__ == "__main__":

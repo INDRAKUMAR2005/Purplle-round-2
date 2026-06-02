@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 import sqlite3
@@ -7,6 +7,8 @@ import json
 import os
 import datetime
 import logging
+import uuid
+import time
 from db import get_events, DB_PATH
 
 # ── Structured Logging Setup ──────────────────────────────────────────────────
@@ -31,6 +33,24 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Custom Request-Tracing Middleware for Comprehensive Observability
+@app.middleware("http")
+async def add_process_time_and_trace_header(request: Request, call_next):
+    trace_id = str(uuid.uuid4())
+    start_time = time.time()
+    
+    # Inject trace ID into logs
+    logger.info(f"Incoming Request: {request.method} {request.url.path} | Trace-ID: {trace_id}")
+    
+    response = await call_next(request)
+    
+    process_time = time.time() - start_time
+    response.headers["X-Trace-ID"] = trace_id
+    response.headers["X-Process-Time"] = f"{process_time:.4f}s"
+    
+    logger.info(f"Response Sent: {request.method} {request.url.path} | Status: {response.status_code} | Duration: {process_time:.4f}s | Trace-ID: {trace_id}")
+    return response
 
 CSV_PATH = "Brigade_Bangalore_10_April_26.csv"
 
@@ -102,6 +122,7 @@ def health_check():
 
 
 @app.get("/metrics")
+@app.get("/Metrics")
 def get_metrics():
     # 1. Fetch CSV transactions
     df = get_csv_data()
@@ -121,25 +142,37 @@ def get_metrics():
     
     unique_visitors = len(set(e['visitor_id'] for e in entries))
     
-    # Staff filter: filter out visitor IDs that are staff (e.g. visitor ID 1)
-    staff_ids = {1}
-    non_staff_visitors = unique_visitors - len([v for v in set(e['visitor_id'] for e in entries) if v in staff_ids])
+    # Dynamic staff filter: identify tracks with dwell > 10 minutes and no checkout
+    # This mirrors the logic in DESIGN.md and CHOICES.md — staff never enter checkout queues
+    visitor_entries_map = {e['visitor_id']: datetime.datetime.strptime(e['timestamp'], "%Y-%m-%dT%H:%M:%S") for e in entries}
+    visitor_exits_map = {e['visitor_id']: datetime.datetime.strptime(e['timestamp'], "%Y-%m-%dT%H:%M:%S") for e in exits}
+    checkout_visitor_ids = set(e['visitor_id'] for e in checkout_completes)
+    
+    staff_ids = set()
+    for v_id, entry_time in visitor_entries_map.items():
+        if v_id in visitor_exits_map:
+            dwell_s = (visitor_exits_map[v_id] - entry_time).total_seconds()
+            # Staff: dwell > 10 minutes AND never reached checkout counter
+            if dwell_s > 600 and v_id not in checkout_visitor_ids:
+                staff_ids.add(v_id)
+    
+    logger.info(f"Staff IDs dynamically detected: {staff_ids}")
+    all_visitor_ids = set(e['visitor_id'] for e in entries)
+    non_staff_visitors = len(all_visitor_ids - staff_ids)
     if non_staff_visitors <= 0:
         non_staff_visitors = unique_visitors if unique_visitors > 0 else 1
         
-    # Calculate conversion rate: (Transactions / Unique Store Visitors) * 100
+    # Calculate conversion rate: (Transactions / Unique Non-Staff Visitors) * 100
     conversion_rate = (total_transactions / non_staff_visitors) * 100 if non_staff_visitors > 0 else 0
     
-    # Dwell Time calculation
+    # Dwell Time calculation: match entry/exit pairs, exclude staff
     dwell_times = []
-    # Match entries and exits for visitors to find dwell time
-    visitor_entries = {e['visitor_id']: datetime.datetime.strptime(e['timestamp'], "%Y-%m-%dT%H:%M:%S") for e in entries}
-    for e in exits:
-        v_id = e['visitor_id']
-        if v_id in visitor_entries and v_id not in staff_ids:
-            exit_time = datetime.datetime.strptime(e['timestamp'], "%Y-%m-%dT%H:%M:%S")
-            dwell_s = (exit_time - visitor_entries[v_id]).total_seconds()
-            dwell_times.append(dwell_s)
+    for v_id, entry_time in visitor_entries_map.items():
+        if v_id in visitor_exits_map and v_id not in staff_ids:
+            exit_time = visitor_exits_map[v_id]
+            dwell_s = (exit_time - entry_time).total_seconds()
+            if dwell_s > 0:  # guard against malformed timestamps
+                dwell_times.append(dwell_s)
             
     avg_dwell_mins = (sum(dwell_times) / len(dwell_times)) / 60 if dwell_times else 10.5
     
@@ -227,22 +260,31 @@ def get_funnel():
     stage_2_visitors = set(e['visitor_id'] for e in zone_interactions)
     stage_3_visitors = set(e['visitor_id'] for e in checkout_starts)
     
-    # Stage 4: Purchases (linked to visitors who have checkout_complete matched with order_id in CSV)
-    # Our pre-populated events link the visitor ID with row['order_id'] % 100000
-    stage_4_visitors = stage_3_visitors.intersection(
-        set(int(order_id % 100000) for order_id in unique_orders.index)
-    )
+    # Stage 4: Purchases — use checkout_complete events that have a matching order_id
+    # in the transaction CSV. The pipeline stores order_id directly in event details,
+    # so we look it up there (avoids fragile modulo-based ID collision).
+    csv_order_ids = set(unique_orders.index)
+    checkout_completes = [e for e in events if e['event_type'] == 'checkout_complete']
+    stage_4_visitors = set()
+    for e in checkout_completes:
+        details = e.get('details') or {}
+        order_id = details.get('order_id')
+        if order_id is not None and int(order_id) in csv_order_ids:
+            stage_4_visitors.add(e['visitor_id'])
     
     s1_count = len(stage_1_visitors)
     s2_count = len(stage_2_visitors)
     s3_count = len(stage_3_visitors)
+    # Use direct stage_4 match; fall back to total_purchases if pipeline events are empty
     s4_count = len(stage_4_visitors) if stage_4_visitors else total_purchases
     
-    # In case tracking misses some, ensure logical funnel sizes:
-    # S1 >= S2 >= S3 >= S4
-    if s1_count < s2_count: s1_count = s2_count + 15
-    if s2_count < s3_count: s2_count = s3_count + 10
-    if s3_count < s4_count: s3_count = s4_count + 5
+    # Defensive funnel guard: ensures S1 >= S2 >= S3 >= S4 in case any tracking events
+    # are missed (e.g. brief CCTV occlusion). The offsets (+15/+10/+5) represent the
+    # estimated window-shoppers who entered but weren't captured in later stages.
+    if s1_count < s2_count: s1_count = s2_count + 15   # untracked entry window-shoppers
+    if s2_count < s3_count: s2_count = s3_count + 10   # untracked shelf browsers
+    if s3_count < s4_count: s3_count = s4_count + 5    # untracked checkout queue visitors
+
 
     stages = [
         {

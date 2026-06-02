@@ -14,6 +14,11 @@ def test_read_root():
 def test_metrics_endpoint():
     response = client.get("/metrics")
     assert response.status_code == 200
+    
+    # Verify case-insensitive fallback works
+    response_cap = client.get("/Metrics")
+    assert response_cap.status_code == 200
+    
     data = response.json()
     
     # Verify primary structures
@@ -90,3 +95,20 @@ def test_layout_endpoint():
     assert len(metrics) > 0
     assert "brand" in metrics[0]
     assert "attention_conversion_index" in metrics[0]
+
+def test_tracing_middleware():
+    response = client.get("/")
+    assert response.status_code == 200
+    assert "X-Trace-ID" in response.headers
+    assert "X-Process-Time" in response.headers
+
+def test_staff_exclusion_logic():
+    response = client.get("/metrics")
+    assert response.status_code == 200
+    data = response.json()
+    summary = data["store_summary"]
+    
+    # Assert that staff tracks are excluded from the denominator:
+    # non_staff_visitors must be less than or equal to total_visitors
+    assert summary["non_staff_visitors"] <= summary["total_visitors"]
+

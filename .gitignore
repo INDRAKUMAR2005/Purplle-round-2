@@ -133,3 +133,5 @@ inspect_videos.py
 inspect_excel.py
 extract_frames.py
 run_hog_detector.py
+
+.vercel
