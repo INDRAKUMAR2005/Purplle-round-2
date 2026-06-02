@@ -1,25 +1,29 @@
-# Store Intelligence & Retail Analytics Console (Purplle Round 2)
+# 🏪 Store Intelligence & Retail Analytics Console (Purplle Round 2)
 
 An end-to-end computer vision and business intelligence platform built for Store `ST1008` (Brigade Road, Bangalore). The system processes multi-camera CCTV footage, logs customer tracks, filters staff traffic, detects operational anomalies, and computes layout attention-to-revenue conversion indices.
 
-Exposes a FastAPI REST gateway and a creative Red & White Store Console Dashboard running seamlessly in a single command.
+Exposes a FastAPI REST gateway and a premium interactive Red & White Store Console Dashboard supporting Light & Dark modes running seamlessly in a single command.
 
 ---
 
-## 🌐 Live API (Vercel Deployment)
+## 🌐 Project Submission Details
 
-> Deployed at: **https://purplle-round-2.vercel.app**
+* **Title**: Store Intelligence & Retail Analytics Console: End-to-End Computer Vision & Business Intelligence Pipeline
+* **Theme**: Retail Technology / Computer Vision & AI Analytics
+* **Live Demo Link**: [https://purplle-round-2.vercel.app/dashboard](https://purplle-round-2.vercel.app/dashboard)
+* **Repository URL**: [https://github.com/INDRAKUMAR2005/Purplle-round-2](https://github.com/INDRAKUMAR2005/Purplle-round-2)
 
-| Endpoint | Live Link |
-| :--- | :--- |
-| API Root | [/](https://purplle-round-2.vercel.app/) |
-| Health Check | [/health](https://purplle-round-2.vercel.app/health) |
-| Store Metrics | [/metrics](https://purplle-round-2.vercel.app/metrics) |
-| Conversion Funnel | [/funnel](https://purplle-round-2.vercel.app/funnel) |
-| Anomaly Feed | [/anomalies](https://purplle-round-2.vercel.app/anomalies) |
-| Layout Analytics | [/layout](https://purplle-round-2.vercel.app/layout) |
-| Live Dashboard | [/dashboard](https://purplle-round-2.vercel.app/dashboard) |
-| Swagger Docs | [/docs](https://purplle-round-2.vercel.app/docs) |
+### 📈 API Endpoints Directory (Production)
+| Endpoint | Description | Live Link |
+| :--- | :--- | :--- |
+| **API Root** | API gateway landing page and directory | [/](https://purplle-round-2.vercel.app/) |
+| **Health Check** | Production DB and CSV connection health | [/health](https://purplle-round-2.vercel.app/health) |
+| **Store Metrics** | Store conversion rate, leaderboards, and traffic charts | [/metrics](https://purplle-round-2.vercel.app/metrics) (or [/Metrics](https://purplle-round-2.vercel.app/Metrics)) |
+| **Conversion Funnel** | Unique session-based visitor-to-buyer funnel | [/funnel](https://purplle-round-2.vercel.app/funnel) |
+| **Anomaly Feed** | Operational alerts (Staff filter, re-entries, abandonments) | [/anomalies](https://purplle-round-2.vercel.app/anomalies) |
+| **Layout Analytics** | Current vs Revised shelf Attention Conversion Index | [/layout](https://purplle-round-2.vercel.app/layout) |
+| **Interactive Console** | Branded Light/Dark mode visual control center | [/dashboard](https://purplle-round-2.vercel.app/dashboard) |
+| **Swagger Docs** | Live interactive API test console | [/docs](https://purplle-round-2.vercel.app/docs) |
 
 ---
 
@@ -46,30 +50,9 @@ Exposes a FastAPI REST gateway and a creative Red & White Store Console Dashboar
 
 ---
 
-## 📂 Project Directory Structure
+## 🚦 How to Deploy & Run (Instructions to Run)
 
-```
-├── main.py                        # FastAPI REST API Gateway & Dashboard router
-├── pipeline.py                    # CCTV Video Ingestion & Event Tracking Engine
-├── db.py                          # SQLite Schema creation & Logging queries
-├── test_app.py                    # Automated Pytest Suite covering API schemas
-├── requirements.txt               # Vercel-compatible python packages (no opencv)
-├── requirements-docker.txt        # Full Docker packages (includes opencv)
-├── Dockerfile                     # Headless OpenCV optimized build
-├── docker-compose.yml             # Orchestrates analytics service on port 8000
-├── vercel.json                    # Vercel serverless function configuration
-├── api/index.py                   # Vercel serverless entry point
-├── dashboard.html                 # Breathtaking Red & White console interface
-├── DESIGN.md                      # Detailed system design & DB structure
-├── CHOICES.md                     # Architectural trade-off analysis
-└── Brigade_Bangalore_10_April_26.csv  # Relational transaction dataset
-```
-
----
-
-## 🚦 How to Deploy & Run
-
-### A. Docker Compose Deployment (Recommended — Full CV Pipeline)
+### A. Docker Compose Deployment (Recommended — Full CV Ingestion)
 Launch the entire system (including the tracking database initialization and REST gateway) in a single command:
 ```bash
 docker compose up --build
@@ -98,7 +81,7 @@ Once initialized:
    ```
 4. **Boot REST API Web Server**:
    ```bash
-   uvicorn main:app --host 127.0.0.1 --port 8000 --reload
+   python -m uvicorn main:app --host 127.0.0.1 --port 8000
    ```
 
 ---
@@ -107,7 +90,7 @@ Once initialized:
 
 Run the Pytest suite inside your virtual environment to verify the core analytics correctness, anomaly filters, and funnel logic:
 ```bash
-pytest test_app.py -v
+python -m pytest test_app.py -v
 ```
 **Expected Output**:
 ```
@@ -116,23 +99,10 @@ test_app.py::test_metrics_endpoint PASSED
 test_app.py::test_funnel_endpoint PASSED
 test_app.py::test_anomalies_endpoint PASSED
 test_app.py::test_layout_endpoint PASSED
-======================== 5 passed in 0.85s =========================
+test_app.py::test_tracing_middleware PASSED
+test_app.py::test_staff_exclusion_logic PASSED
+======================== 7 passed in 1.18s =========================
 ```
-
----
-
-## 📊 API Endpoint Summary
-
-| HTTP Verb | Endpoint | Description |
-| :--- | :--- | :--- |
-| `GET` | `/` | API root — store info & endpoint directory |
-| `GET` | `/health` | Production health check — DB status, event count, CSV availability |
-| `GET` | `/metrics` | Key store summary, salesperson leaderboard, hourly traffic |
-| `GET` | `/funnel` | Session-based visitor-to-buyer shopping conversion funnel |
-| `GET` | `/anomalies` | Detected operational shop floor anomalies (Staff, Re-entry, Cart Abandonment) |
-| `GET` | `/layout` | Current vs Revised shelf Attention-to-Revenue index comparison |
-| `GET` | `/dashboard` | Interactive Red & White mixed creative dashboard visualizer |
-| `GET` | `/docs` | Auto-generated Swagger UI API documentation |
 
 ---
 
